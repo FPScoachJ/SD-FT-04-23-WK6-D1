@@ -263,6 +263,25 @@ app.delete("/delete_customer/:id", (req, res) => {
 });
 
 //Get Orders
+// app.get("/get_orders", (req, res) => {
+//   pool.connect((err, client, release) => {
+//     if (err) {
+//       release();
+//       console.log("Error connecting to the database:", err);
+//       res.status(500).send("Internal service error");
+//     }
+//     client.query(`SELECT * FROM orders;`, (err, result) => {
+//       release();
+//       if (err) {
+//         console.log("Error in executing the query: ", err);
+//         res.status(500).send("Internal server error");
+//         return;
+//       }
+//       res.send(result);
+//     });
+//   });
+// });
+
 app.get("/get_orders", (req, res) => {
   pool.connect((err, client, release) => {
     if (err) {
@@ -270,15 +289,21 @@ app.get("/get_orders", (req, res) => {
       console.log("Error connecting to the database:", err);
       res.status(500).send("Internal service error");
     }
-    client.query(`SELECT * FROM orders;`, (err, result) => {
-      release();
-      if (err) {
-        console.log("Error in executing the query: ", err);
-        res.status(500).send("Internal server error");
-        return;
+    client.query(
+      `SELECT customers.customer_name, orders.customer_id, orders.recipe_id, recipes.recipe_name
+FROM customers
+INNER JOIN orders ON customers.id = orders.customer_id
+INNER JOIN recipes ON orders.recipe_id = recipes.id;`,
+      (err, result) => {
+        release();
+        if (err) {
+          console.log("Error in executing the query: ", err);
+          res.status(500).send("Internal server error");
+          return;
+        }
+        res.send(result);
       }
-      res.send(result);
-    });
+    );
   });
 });
 
@@ -309,6 +334,30 @@ app.post("/create_order", (req, res) => {
 });
 
 //Get Order by ID
+// app.get("/get_orders/:id", (req, res) => {
+//   const { id } = req.params;
+//   pool.connect((err, client, release) => {
+//     if (err) {
+//       release();
+//       console.log("Error connecting to the database:", err);
+//       res.status(500).send("Internal service error");
+//     }
+
+//     const sqlQuery = `SELECT * FROM orders WHERE id = $1;`;
+//     const values = [id];
+
+//     client.query(sqlQuery, values, (err, result) => {
+//       release();
+//       if (err) {
+//         console.log("Error in executing the query: ", err);
+//         res.status(500).send("Internal server error");
+//         return;
+//       }
+//       res.send(result);
+//     });
+//   });
+// });
+
 app.get("/get_orders/:id", (req, res) => {
   const { id } = req.params;
   pool.connect((err, client, release) => {
@@ -318,7 +367,10 @@ app.get("/get_orders/:id", (req, res) => {
       res.status(500).send("Internal service error");
     }
 
-    const sqlQuery = `SELECT * FROM orders WHERE id = $1;`;
+    const sqlQuery = `SELECT customers.customer_name, orders.customer_id, orders.recipe_id, recipes.recipe_name
+FROM customers
+INNER JOIN orders ON customers.id = orders.customer_id
+INNER JOIN recipes ON orders.recipe_id = recipes.id WHERE orders.id = $1;`;
     const values = [id];
 
     client.query(sqlQuery, values, (err, result) => {
@@ -332,7 +384,6 @@ app.get("/get_orders/:id", (req, res) => {
     });
   });
 });
-
 //Update Order By ID
 app.put("/update_order/:id", (req, res) => {
   const { id } = req.params;
